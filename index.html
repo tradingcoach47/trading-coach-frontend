@@ -325,6 +325,7 @@
 
 const TOPICS = {
   what_is_a_stock: {
+    keywords: ["what is a stock", "what's a stock", "define a stock", "define stock", "stock mean"],
     title: "What is a stock?",
     level: "Absolute basics",
     instrument: "universal",
@@ -346,6 +347,7 @@ const TOPICS = {
     challenge: "Pick a company you know well. Look up roughly how many shares it has outstanding and its current share price. Multiply them together — that's the market's current estimate of what the whole company is worth."
   },
   order_types: {
+    keywords: ["market order", "limit order", "order type"],
     title: "Market orders vs. limit orders",
     level: "Absolute basics",
     instrument: "universal",
@@ -367,6 +369,7 @@ const TOPICS = {
     challenge: "Next time you look at a stock's price, decide: if you wanted to buy it right now, would you use a market order or a limit order — and why, given how fast that particular stock tends to move?"
   },
   timeframes: {
+    keywords: ["timeframe", "time frame", "chart period", "which chart"],
     title: "Timeframes: what chart period actually shows you",
     level: "Absolute basics",
     instrument: "universal",
@@ -388,6 +391,7 @@ const TOPICS = {
     challenge: "Look at the same stock on two different timeframes (e.g., 1-day and 3-month, if your charting tool allows it). Write one sentence on how differently the recent price action looks between the two."
   },
   support_resistance: {
+    keywords: ["support and resistance", "support & resistance", "support level", "resistance level"],
     title: "Support & resistance",
     level: "Beginner-friendly",
     instrument: "universal",
@@ -409,6 +413,7 @@ const TOPICS = {
     challenge: "Open any chart of a stock you know. Find two swing lows that are close in price — that's a candidate support zone. Write one sentence describing what would prove that zone is broken, not just tested."
   },
   risk_management: {
+    keywords: ["risk management", "position siz", "risk per trade", "how much should i risk", "risk percent"],
     title: "Risk per trade & position sizing",
     level: "Foundational",
     instrument: "universal",
@@ -430,6 +435,7 @@ const TOPICS = {
     challenge: "Pick a real or hypothetical account size and risk percentage. Write down what your dollar risk per trade would be. Then use the Trade Plan Builder to see how that changes your position size for a real setup."
   },
   candlesticks: {
+    keywords: ["candlestick", "candle stick", "reading candles", "candle mean"],
     title: "Reading candlesticks",
     level: "Beginner-friendly",
     instrument: "universal",
@@ -453,6 +459,7 @@ const TOPICS = {
     challenge: "Look at the last 5 candles on a chart you follow. Describe each one in one sentence: who seemed to be in control, buyers or sellers?"
   },
   psychology_fomo: {
+    keywords: ["fomo", "revenge trad", "chasing a trade"],
     title: "FOMO & revenge trading",
     level: "Trader psychology",
     instrument: "universal",
@@ -474,6 +481,7 @@ const TOPICS = {
     challenge: "Write down one entry rule you will refuse to break this week, even if a stock is moving fast without you."
   },
   momentum_volume: {
+    keywords: ["momentum", "trading volume", "volume mean"],
     title: "Momentum & volume",
     level: "Market structure",
     instrument: "universal",
@@ -495,6 +503,7 @@ const TOPICS = {
     challenge: "Find a chart and compare volume on its 3 most recent up-days versus its 3 most recent down-days. What does the pattern suggest, and what would you want to confirm before trusting it?"
   },
   options_basics: {
+    keywords: ["what is an option", "call option", "put option", "options basic"],
     title: "Options basics: calls & puts",
     level: "Options",
     instrument: "options",
@@ -516,6 +525,7 @@ const TOPICS = {
     challenge: "Pick a stock you know. Look up (or estimate) what a call option 5% above the current price might cost. Write down: what would the stock need to do, and by when, for that option to be worth more than you paid?"
   },
   options_strategies: {
+    keywords: ["covered call", "options strateg", "vertical spread", "option spread"],
     title: "Common options strategies",
     level: "Options",
     instrument: "options",
@@ -537,6 +547,7 @@ const TOPICS = {
     challenge: "Look at a stock you already own or are watching. Would a covered call fit your goal for it right now — income, or letting it run? Write one sentence on why."
   },
   futures_basics: {
+    keywords: ["futures contract", "futures basic", "what is leverage", "point value"],
     title: "Futures basics: contracts & leverage",
     level: "Futures",
     instrument: "futures",
@@ -558,6 +569,7 @@ const TOPICS = {
     challenge: "Look up the point value for a futures contract you're curious about. If you were willing to risk $500 on a trade, how many points of adverse move would that allow you before your stop, at 1 contract?"
   },
   crypto_basics: {
+    keywords: ["crypto", "bitcoin", "spot trading"],
     title: "Crypto trading basics: spot & volatility",
     level: "Crypto",
     instrument: "crypto",
@@ -1003,11 +1015,19 @@ async function askCoach(mode, payload){
       headers: { "Content-Type": "application/json", "X-Coach-Secret": COACH_SHARED_SECRET },
       body: JSON.stringify({ mode, profile: state.profile, ...payload }),
     });
-    if(!res.ok) throw new Error("Coach API responded with " + res.status);
+    if(!res.ok){
+      let bodyText = "";
+      try{ bodyText = await res.text(); } catch(e2){}
+      throw new Error("Coach API responded with " + res.status + (bodyText ? (": " + bodyText) : ""));
+    }
     const data = await res.json();
     return data.result ?? null;
   } catch(e){
     console.warn("Live coach unavailable, falling back to static content:", e);
+    // TEMPORARY diagnostic — shows the real error on-screen since console access
+    // isn't easy on mobile. Remove this showAlert line once live coaching is
+    // confirmed working; it's noisy by design for troubleshooting only.
+    showAlert(String(e.message || e), "Live coach error (debug)");
     return null;
   }
 }
@@ -3769,7 +3789,7 @@ function qa(sel){ return Array.from(document.querySelectorAll(sel)); }
 
 async function handleFreeAsk(text){
   const q = (text||"").toLowerCase();
-  const match = Object.entries(TOPICS).find(([key,t]) => q.includes(key.split("_")[0]) || q.includes(t.title.toLowerCase().split(" ")[0]));
+  const match = Object.entries(TOPICS).find(([key,t]) => (t.keywords||[]).some(kw => q.includes(kw)));
   if(match){
     state.teacherTopic = match[0];
     state.teacherView = "explain";
